@@ -1,18 +1,14 @@
 __version__ = "0.0.1"
 
-from ast import pattern
-from lib2to3.pgen2.token import NAME
 from time import sleep
 import virtualbox
-from virtualbox.library import VirtualSystemDescriptionType
 import const
 import os
 import re
 
 target = const.ovf_file
 ip = '172.16.187.11'
-NAME_VM_ID_DESC = 3
-type_name_desc = VirtualSystemDescriptionType(NAME_VM_ID_DESC)
+  
 
 def print_pecent(progress):
     print("Complete: ")
@@ -39,8 +35,7 @@ def deploy(target, name):
     ovf.read(target)
     ovf.interpret()    
     ovf_descriptions = ovf.virtual_system_descriptions[0]
-    ovf_descriptions.remove_description_by_type(type_name_desc)
-    ovf_descriptions.add_description(type_name_desc, name, '')
+    ovf_descriptions.set_name(build_name())
     progress = ovf.import_machines()
     print("========importing machine:")
     print_pecent(progress)
