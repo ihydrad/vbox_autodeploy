@@ -29,13 +29,14 @@ def build_name():
     return get_ver_ovf_machine(target) + '_' + \
         get_last_ip_octet(ip)
 
-def deploy(target, name):
+def deploy(target):
+    name = build_name()
     vbox = virtualbox.VirtualBox()
     ovf = vbox.create_appliance()
     ovf.read(target)
     ovf.interpret()    
     ovf_descriptions = ovf.virtual_system_descriptions[0]
-    ovf_descriptions.set_name(build_name())
+    ovf_descriptions.set_name(name)
     progress = ovf.import_machines()
     print("========importing machine:")
     print_pecent(progress)
@@ -49,4 +50,4 @@ def deploy(target, name):
     print_pecent(progress)
 
 if __name__ == "__main__":
-    deploy(target, build_name())
+    deploy(target)
