@@ -9,7 +9,7 @@ import re
 target = const.ovf_file
 ip = '172.16.187.11'  
 
-def print_pecent(progress):
+def print_percent(progress):
     print("Complete: ")
     while progress.percent != 100:
         print(f"{progress.percent}%", end='\r')
@@ -38,7 +38,7 @@ def deploy(target):
     ovf_descriptions.set_name(name)
     progress = ovf.import_machines()
     print("========importing machine:")
-    print_pecent(progress)
+    print_percent(progress)
     uuid_machines = ovf.machines
     machine = vbox.find_machine(uuid_machines[0])
     session = machine.create_session()
@@ -46,7 +46,7 @@ def deploy(target):
     sleep(5)
     progress = machine.launch_vm_process(session, "gui", [])
     print("========starting machine:")
-    print_pecent(progress)
+    print_percent(progress)
 
 if __name__ == "__main__":
     deploy(target)
