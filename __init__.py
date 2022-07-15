@@ -5,9 +5,16 @@ import virtualbox
 import const
 import os
 import re
+from HSMhelper import Node
 
 target = const.ovf_file
 ip = '172.16.187.11'  
+
+net_conf = {
+        "addr":"192.168.43.11",
+        "mask":"255.255.255.0",
+        "gw":"192.168.43.1"
+        } 
 
 def percent(progress):
     print("Complete: ")
@@ -62,5 +69,23 @@ def deploy(target):
     if not percent(progress):
         return 0
 
+def wait_resp(hostname, del_s):
+    cnt = 0
+    while True:
+        if del_s == cnt:
+            return 0
+        sleep(1)
+        cnt+=1
+        response = os.system("ping -n 1 " + hostname)
+        if response == 0:
+            return 1
+
 if __name__ == "__main__":
+    def_ip = "10.0.2.15"
     deploy(target)
+    wait_resp(def_ip, 100)
+    n15 = Node(def_ip)
+    if n15.config.eth0_set(net_conf):
+        print("Complete!")
+        n15.config.reboot()
+    
