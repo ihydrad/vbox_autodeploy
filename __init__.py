@@ -7,8 +7,7 @@ import os
 import re
 
 target = const.ovf_file
-ip = '172.16.187.11'
-  
+ip = '172.16.187.11'  
 
 def print_pecent(progress):
     print("Complete: ")
@@ -25,12 +24,12 @@ def get_ver_ovf_machine(full_path):
 def get_last_ip_octet(ip_addr):
     return ip_addr.split('.')[-1]
 
-def build_name():
-    return get_ver_ovf_machine(target) + '_' + \
-        get_last_ip_octet(ip)
+def build_name(target_path, ip_macchine):
+    return get_ver_ovf_machine(target_path) + '_' + \
+        get_last_ip_octet(ip_macchine)
 
 def deploy(target):
-    name = build_name()
+    name = build_name(target, ip)
     vbox = virtualbox.VirtualBox()
     ovf = vbox.create_appliance()
     ovf.read(target)
