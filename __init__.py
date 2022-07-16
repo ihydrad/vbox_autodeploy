@@ -110,6 +110,8 @@ class HSMDeploy:
         vbox = virtualbox.VirtualBox()
         try:
             hsm = vbox.find_machine(self._machine_name)
+            print("\nRemoving old machine...")
+            hsm.remove()
         except:
             new = True
             hsm = self.start_appliance(vbox)
