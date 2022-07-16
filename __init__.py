@@ -6,6 +6,7 @@ import const
 import os
 import re
 from HSMhelper import Node
+from virtualbox.library import NetworkAttachmentType
 
 target = const.ovf_file
 ip = '172.16.187.11'  
@@ -38,14 +39,6 @@ def build_name(target_path, ip_macchine):
     return get_ver_ovf_machine(target_path) + '_' + \
         get_last_ip_octet(ip_macchine)
 
-def set_adapter_1(conf, type_iface):
-    desc = conf.get_description()
-    vbox_values, extra_config = desc[3:]
-    extra_config = list(extra_config)    
-    extra_config[8]  = f'type={type_iface}'
-    en = [True for _ in range(len(extra_config))]
-    conf.set_final_values(en, list(vbox_values), extra_config)
-
 def deploy(target):
     name = build_name(target, ip)
     vbox = virtualbox.VirtualBox()
@@ -54,7 +47,7 @@ def deploy(target):
     ovf.interpret()  
     conf_machine = ovf.virtual_system_descriptions[0]
     conf_machine.set_name(name)
-    set_adapter_1(conf_machine, "hostOnly")
+    #set_adapter_1(conf_machine, "hostOnly")
     progress = ovf.import_machines()
     print("========importing machine:")
     if not percent(progress):
@@ -66,6 +59,8 @@ def deploy(target):
     # получаем изменяемую копию машины
     hsm_tmp = tmp.machine
     eth0 = hsm_tmp.get_network_adapter(0)
+    eth0.host_only_interface = "VirtualBox Host-Only Ethernet Adapter"
+    eth0.attachment_type = NetworkAttachmentType["host_only"]
     eth0.mac_address = "0800272bf921"
     # коммитим изменения машины
     hsm_tmp.save_settings()
