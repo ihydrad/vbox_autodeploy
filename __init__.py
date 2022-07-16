@@ -23,23 +23,24 @@ class HSMDeploy:
     def __init__(self, ovf_path, ip) -> None:
         self._ovf_path = ovf_path
         self.ip_addr = ip
+        self.hsm_build = ''
         self._machine_name = self.machine_name
+
+    @property
+    def machine_name(self) -> str:
+        self.ovf_name = os.path.basename(self._ovf_path)
         try:
             self.hsm_build = re.search(self.__buld_pattern, self.ovf_name)
             self.hsm_build = self.hsm_build.group(0)
-        except:
+        except IndexError:
             self.hsm_build = 'hsm'
-
-    @property
-    def machine_name(self):
-        self.ovf_name = os.path.basename(self._ovf_path)
-        return self.ovf_name + self.ip_addr.split('.')[-1]
+        return self.hsm_build + '_' + self.ip_addr.split('.')[-1]
 
     @machine_name.setter
     def machine_name(self, name):
         self._machine_name = name
 
-    def wait(self, progress):
+    def wait(self, progress) -> int:
         print("Complete: ")
         while progress.percent != 100:
             sleep(0.1)
@@ -47,9 +48,9 @@ class HSMDeploy:
             if progress.canceled:
                 print("Canceled")
                 return 0
-        return 100
+        return 1
 
-    def run(self):
+    def run(self) -> bool:
         vbox = virtualbox.VirtualBox()
         appliance = vbox.create_appliance()
         appliance.read(self._ovf_path)
@@ -69,12 +70,30 @@ class HSMDeploy:
         eth0.attachment_type = NetworkAttachmentType["host_only"]
         eth0.mac_address = "0800272bf921"
         hsm_tmp.save_settings()
-        session.unlock_machine() 
+        session.unlock_machine()
         sleep(5)
-        progress = hsm.launch_vm_process(session, "gui", [])
+        progress = hsm.launch_vm_process(session, "headless", [])
         print("========starting machine:")
-        if not self.wait(progress):
-            return 0
+        self.wait(progress)
+        session.unlock_machine()
+        print("Deploy complete!")
+
+    def set_net_conf(self, conf):
+        cnt = 30
+        print("Try connect to machine...", end='')
+        sleep(5)
+        while cnt:
+            cnt -= 1
+            try:
+                print(".", end='')
+                hsm_ssh = Node(hsm_deploy.start_hsm_ip)
+            except:
+                continue
+            if hsm_ssh.config.eth0_set(conf):
+                print("Complete! Rebooting...")
+                hsm_ssh.config.reboot()
+                return 1
+        return 0
 
     # TODO add method for get names of all network adapers
 
@@ -82,7 +101,5 @@ class HSMDeploy:
 if __name__ == "__main__":
     hsm_deploy = HSMDeploy(target, net_conf["ip_addr"])
     hsm_deploy.run()
-    n15 = Node(hsm_deploy.start_hsm_ip)
-    if n15.config.eth0_set(net_conf):
-        print("Complete!")
-        n15.config.reboot()
+    print("TEST")
+    hsm_deploy.set_net_conf(net_conf)
