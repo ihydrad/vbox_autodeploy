@@ -10,10 +10,28 @@ from virtualbox.library import NetworkAttachmentType
 
 target = const.ovf_file
 net_conf = {
-        "ip_addr": "192.168.43.11",
+        "addr": "192.168.43.11",
         "mask": "255.255.255.0",
         "gw": "192.168.43.1"
         }
+
+
+def set_net_conf(conf):
+    cnt = 30
+    print("Try connect to machine...", end='')
+    sleep(5)
+    while cnt:
+        cnt -= 1
+        try:
+            print(".", end='')
+            hsm_ssh = Node(hsm_deploy.start_hsm_ip)
+        except:
+            continue
+        if hsm_ssh.config.eth0_set(conf):
+            print("Complete! Rebooting...")
+            hsm_ssh.config.reboot()
+            return 1
+    return 0
 
 
 class HSMDeploy:
@@ -72,34 +90,16 @@ class HSMDeploy:
         hsm_tmp.save_settings()
         session.unlock_machine()
         sleep(5)
-        progress = hsm.launch_vm_process(session, "headless", [])
+        progress = hsm.launch_vm_process(session, "gui", [])
         print("========starting machine:")
         self.wait(progress)
         session.unlock_machine()
-        print("Deploy complete!")
-
-    def set_net_conf(self, conf):
-        cnt = 30
-        print("Try connect to machine...", end='')
-        sleep(5)
-        while cnt:
-            cnt -= 1
-            try:
-                print(".", end='')
-                hsm_ssh = Node(hsm_deploy.start_hsm_ip)
-            except:
-                continue
-            if hsm_ssh.config.eth0_set(conf):
-                print("Complete! Rebooting...")
-                hsm_ssh.config.reboot()
-                return 1
-        return 0
+        print("\nDeploy complete!")
 
     # TODO add method for get names of all network adapers
 
 
 if __name__ == "__main__":
-    hsm_deploy = HSMDeploy(target, net_conf["ip_addr"])
+    hsm_deploy = HSMDeploy(target, net_conf["addr"])
     hsm_deploy.run()
-    print("TEST")
-    hsm_deploy.set_net_conf(net_conf)
+    set_net_conf(net_conf)
