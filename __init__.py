@@ -54,17 +54,26 @@ def deploy(target):
     ovf.interpret()  
     conf_machine = ovf.virtual_system_descriptions[0]
     conf_machine.set_name(name)
-    set_adapter_1(conf_machine, "Bridged")
+    set_adapter_1(conf_machine, "hostOnly")
     progress = ovf.import_machines()
     print("========importing machine:")
     if not percent(progress):
         return 0 
     uuid_machines = ovf.machines
-    machine = vbox.find_machine(uuid_machines[0])
-    session = machine.create_session()
-    session.unlock_machine()
+    hsm = vbox.find_machine(uuid_machines[0])
+    # создаем сессию с правами записи
+    tmp = hsm.create_session()
+    # получаем изменяемую копию машины
+    hsm_tmp = tmp.machine
+    eth0 = hsm_tmp.get_network_adapter(0)
+    eth0.mac_address = "0800272bf921"
+    eth0.host_only_interface
+    # коммитим изменения машины
+    hsm_tmp.save_settings()
+    # освобождаем доступ к машине
+    tmp.unlock_machine()    
     sleep(5)
-    progress = machine.launch_vm_process(session, "gui", [])
+    progress = hsm.launch_vm_process(tmp, "gui", [])
     print("========starting machine:")
     if not percent(progress):
         return 0
@@ -83,7 +92,8 @@ def wait_resp(hostname, del_s):
 if __name__ == "__main__":
     def_ip = "10.0.2.15"
     deploy(target)
-    wait_resp(def_ip, 100)
+    #wait_resp(def_ip, 100)
+    sleep(100)
     n15 = Node(def_ip)
     if n15.config.eth0_set(net_conf):
         print("Complete!")
