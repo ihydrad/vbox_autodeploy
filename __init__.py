@@ -78,20 +78,21 @@ class HSMDeploy:
         progress = appliance.import_machines()
         print("========importing machine:")
         if not self.wait(progress):
-            return 0
+            raise ("start_appliance not complete!")
         uuid_machines = appliance.machines
         hsm = vbox_obj.find_machine(uuid_machines[0])
+        print("\nMachine name:", hsm)
         return hsm
 
     def configure_machine(self, machine):
-        session = machine.create_session()
-        hsm_tmp = session.machine
+        session_conf = machine.create_session()
+        hsm_tmp = session_conf.machine
         eth0 = hsm_tmp.get_network_adapter(0)
         eth0.host_only_interface = "VirtualBox Host-Only Ethernet Adapter"
         eth0.attachment_type = NetworkAttachmentType["host_only"]
         eth0.mac_address = "0800272bf921"
         hsm_tmp.save_settings()
-        session.unlock_machine()
+        session_conf.unlock_machine()
 
     def wait_for_load_os(self, session_obj):
         print("\nWaiting full load system...")
@@ -110,21 +111,27 @@ class HSMDeploy:
         vbox = virtualbox.VirtualBox()
         try:
             hsm = vbox.find_machine(self._machine_name)
+            session = hsm.create_session()
+            while hsm.state != 1:
+                session.console.power_down()
+                sleep(5)
             print("\nRemoving old machine...")
             hsm.remove()
+            session.unlock_machine()
         except:
             new = True
             hsm = self.start_appliance(vbox)
         self.configure_machine(hsm)
         sleep(5)
-        session = virtualbox.Session()
-        progress = hsm.launch_vm_process(session, "gui", [])
+        session_scr = virtualbox.Session()
+        progress = hsm.launch_vm_process(session_scr, "gui", [])
         print("\n========starting machine:")
         self.wait(progress)
-        self.wait_for_load_os(session)
+        self.wait_for_load_os(session_scr)
         return new
 
     # TODO add method for get names of all network adapters
+    # TODO add address on the iface hostonly (10.0.2.14)
 
 
 if __name__ == "__main__":
