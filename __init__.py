@@ -67,7 +67,6 @@ def deploy(target):
     hsm_tmp = tmp.machine
     eth0 = hsm_tmp.get_network_adapter(0)
     eth0.mac_address = "0800272bf921"
-    eth0.host_only_interface
     # коммитим изменения машины
     hsm_tmp.save_settings()
     # освобождаем доступ к машине
