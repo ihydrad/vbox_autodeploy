@@ -10,9 +10,9 @@ from virtualbox.library import NetworkAttachmentType
 
 target = const.ovf_file
 net_conf = {
-        "addr": "192.168.43.11",
+        "addr": "192.168.56.11",
         "mask": "255.255.255.0",
-        "gw": "192.168.43.1"
+        "gw": "192.168.56.1"
         }
 
 
@@ -68,9 +68,9 @@ class HSMDeploy:
                 return 0
         return 1
 
-    def run(self) -> bool:
-        vbox = virtualbox.VirtualBox()
-        appliance = vbox.create_appliance()
+    def start_appliance(self, vbox_obj) -> virtualbox.library.IMachine:
+        print("Starting appliance...")
+        appliance = vbox_obj.create_appliance()
         appliance.read(self._ovf_path)
         appliance.interpret()
         conf_machine = appliance.virtual_system_descriptions[0]
@@ -80,8 +80,11 @@ class HSMDeploy:
         if not self.wait(progress):
             return 0
         uuid_machines = appliance.machines
-        hsm = vbox.find_machine(uuid_machines[0])
-        session = hsm.create_session()
+        hsm = vbox_obj.find_machine(uuid_machines[0])
+        return hsm
+
+    def configure_machine(self, machine):
+        session = machine.create_session()
         hsm_tmp = session.machine
         eth0 = hsm_tmp.get_network_adapter(0)
         eth0.host_only_interface = "VirtualBox Host-Only Ethernet Adapter"
@@ -89,17 +92,40 @@ class HSMDeploy:
         eth0.mac_address = "0800272bf921"
         hsm_tmp.save_settings()
         session.unlock_machine()
-        sleep(5)
-        progress = hsm.launch_vm_process(session, "gui", [])
-        print("========starting machine:")
-        self.wait(progress)
-        session.unlock_machine()
-        print("\nDeploy complete!")
 
-    # TODO add method for get names of all network adapers
+    def wait_for_load_os(self, session_obj):
+        print("\nWaiting full load system...")
+        while True:
+            res = session_obj.console.display.get_screen_resolution(0)[0]
+            print(f"Current display resolution: {res}px", end='\r')
+            sleep(5)
+            if res < 1024:
+                continue
+            else:
+                print("\nLoad OS is complete!")
+                break
+
+    def run(self) -> bool:
+        new = False
+        vbox = virtualbox.VirtualBox()
+        try:
+            hsm = vbox.find_machine(self._machine_name)
+        except:
+            new = True
+            hsm = self.start_appliance(vbox)
+        self.configure_machine(hsm)
+        sleep(5)
+        session = virtualbox.Session()
+        progress = hsm.launch_vm_process(session, "gui", [])
+        print("\n========starting machine:")
+        self.wait(progress)
+        self.wait_for_load_os(session)
+        return new
+
+    # TODO add method for get names of all network adapters
 
 
 if __name__ == "__main__":
     hsm_deploy = HSMDeploy(target, net_conf["addr"])
-    hsm_deploy.run()
-    set_net_conf(net_conf)
+    if hsm_deploy.run():
+        set_net_conf(net_conf)
