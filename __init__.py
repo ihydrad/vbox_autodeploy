@@ -25,7 +25,7 @@ def set_net_conf(conf):
         cnt -= 1
         try:
             print(".", end='')
-            hsm_ssh = Node(hsm_deploy.start_hsm_ip)
+            hsm_ssh = Node(const.start_hsm_ip)
         except:
             continue
         if hsm_ssh.config.eth0_set(conf):
@@ -36,8 +36,6 @@ def set_net_conf(conf):
 
 
 class HSMDeploy:
-    __build_pattern = r'\d+\.\d+\.\d\.\d+'
-    start_hsm_ip = "10.0.2.15"
 
     def __init__(self, ovf_path, ip) -> None:
         self._ovf_path = ovf_path
@@ -49,7 +47,7 @@ class HSMDeploy:
     def machine_name(self) -> str:
         self.ovf_name = os.path.basename(self._ovf_path)
         try:
-            self.hsm_build = re.search(self.__build_pattern, self.ovf_name)
+            self.hsm_build = re.search(const.build_pattern, self.ovf_name)
             self.hsm_build = self.hsm_build.group(0)
         except IndexError:
             self.hsm_build = 'hsm'
