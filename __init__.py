@@ -36,7 +36,7 @@ def set_net_conf(conf):
 
 
 class HSMDeploy:
-    __bulid_pattern = r'\d+\.\d+\.\d\.\d+'
+    __build_pattern = r'\d+\.\d+\.\d\.\d+'
     start_hsm_ip = "10.0.2.15"
 
     def __init__(self, ovf_path, ip) -> None:
