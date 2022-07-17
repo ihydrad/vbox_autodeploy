@@ -60,13 +60,14 @@ class HSMDeploy:
         self._machine_name = name
 
     def wait(self, progress) -> int:
-        print("Complete: ")
-        while progress.percent != 100:
-            sleep(0.1)
-            print(f"{progress.percent}%", end='\r')
+        for i in tqdm(range(100)):
             if progress.canceled:
                 print("Canceled")
                 return 0
+            while progress.percent > i:
+                break
+            while progress.percent <= i:
+                sleep(0.05)
         return 1
 
     def start_appliance(self, vbox_obj) -> virtualbox.library.IMachine:
