@@ -67,6 +67,8 @@ class HSMDeploy:
                 break
             while progress.percent <= i:
                 sleep(0.05)
+                if progress.completed:
+                    break
         sleep(10)
         if progress.result_code != 0:
             raise Exception(progress.error_info.text)
