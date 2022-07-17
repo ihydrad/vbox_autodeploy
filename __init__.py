@@ -9,6 +9,7 @@ from HSMhelper import Node
 from virtualbox.library import NetworkAttachmentType
 from tqdm import tqdm
 import argparse
+import datetime
 
 
 target = const.ovf_file
@@ -17,6 +18,15 @@ net_conf = {
         "mask": "255.255.255.0",
         "gw": "192.168.56.1"
         }
+
+
+def timeit(func):
+    def wrapper(*args, **kvargs):
+        startTime = datetime.datetime.now()
+        result = func(*args, **kvargs)
+        print("used time:", datetime.datetime.now() - startTime)
+        return result
+    return wrapper
 
 
 def set_net_conf(conf):
@@ -40,6 +50,7 @@ def set_net_conf(conf):
 class HSMDeploy:
 
     def __init__(self, ovf_path, ip) -> None:
+        self.vbox = virtualbox.VirtualBox()
         self._ovf_path = ovf_path
         self.ip_addr = ip
         self.hsm_build = ''
@@ -62,7 +73,7 @@ class HSMDeploy:
     def wait(self, progress) -> int:
         for i in tqdm(range(100)):
             if progress.completed:
-                break
+                continue
             while progress.percent > i:
                 break
             while progress.percent <= i:
@@ -75,9 +86,9 @@ class HSMDeploy:
         else:
             return 1
 
-    def start_appliance(self, vbox_obj) -> virtualbox.library.IMachine:
+    def start_appliance(self) -> virtualbox.library.IMachine:
         print("Starting appliance...")
-        appliance = vbox_obj.create_appliance()
+        appliance = self.vbox.create_appliance()
         appliance.read(self._ovf_path)
         appliance.interpret()
         conf_machine = appliance.virtual_system_descriptions[0]
@@ -87,7 +98,7 @@ class HSMDeploy:
         if not self.wait(progress):
             raise ("start_appliance not complete!")
         uuid_machines = appliance.machines
-        hsm = vbox_obj.find_machine(uuid_machines[0])
+        hsm = self.vbox.find_machine(uuid_machines[0])
         print("\nMachine name:", hsm)
         return hsm
 
@@ -101,41 +112,53 @@ class HSMDeploy:
         hsm_tmp.save_settings()
         session_conf.unlock_machine()
 
+    @timeit
     def wait_for_load_os(self, session_obj):
-        print("\nWaiting for resolution 1024px(full loaded system):")
+        print("\nTarget resolution: 1024px")
+        cnt = 0
         while True:
+            cnt += 1
             res = session_obj.console.display.get_screen_resolution(0)[0]
-            print(f"Current display resolution: {res}px", end='\r')
-            sleep(5)
+            anim_char = ['-', '\\', '|', '/']
+            msg = f"Current: {res}px"
+            print(anim_char[cnt % 4] + msg, end='\r')
+            sleep(0.5)
             if res < 1024:
                 continue
             else:
-                print("\nLoad OS is complete!")
+                print("\nLoading complete, ", end='')
                 break
 
-    def run(self) -> bool:
-        vbox = virtualbox.VirtualBox()
-        all_machines = list(map(str, vbox.machines))
+    def remove_machine(self, name):
+        all_machines = list(map(str, self.vbox.machines))
         if self._machine_name in all_machines:
-            hsm = vbox.find_machine(self._machine_name)
+            hsm = self.vbox.find_machine(name)
             session = hsm.create_session()
             while hsm.state != 1:
                 session.console.power_down()
                 print("Try power down machine...")
                 sleep(5)
-            print("Machine is power down!")
+            print("Machine is down!")
             print(f"Removing {self._machine_name} machine...")            
             session.unlock_machine()
             hsm.remove()
-        hsm = self.start_appliance(vbox)
-        input("Prep start m")
+            return True
+        else:
+            return 0
+
+    def run(self) -> bool:
+        self.remove_machine(self._machine_name)
+        hsm = self.start_appliance()
+        start = input("Start guest?(N/y)")
+        if start.lower() == 'n' or start == '':
+            return 0
         self.configure_machine(hsm)
         sleep(5)
-        session_scr = virtualbox.Session()
-        progress = hsm.launch_vm_process(session_scr, "gui", [])
+        session = virtualbox.Session()
+        progress = hsm.launch_vm_process(session, "gui", [])
         print("\n========starting machine:")
-        self.wait(progress)
-        self.wait_for_load_os(session_scr)
+        self.wait(progress)        
+        self.wait_for_load_os(session)
 
     # TODO add method for get names of all network adapters
     # TODO add address on the iface hostonly (10.0.2.14)
