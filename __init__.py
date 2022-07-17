@@ -8,6 +8,8 @@ import re
 from HSMhelper import Node
 from virtualbox.library import NetworkAttachmentType
 from tqdm import tqdm
+import argparse
+
 
 target = const.ovf_file
 net_conf = {
@@ -59,14 +61,17 @@ class HSMDeploy:
 
     def wait(self, progress) -> int:
         for i in tqdm(range(100)):
-            if progress.canceled:
-                print("Canceled")
-                return 0
+            if progress.completed:
+                break
             while progress.percent > i:
                 break
             while progress.percent <= i:
                 sleep(0.05)
-        return 1
+        sleep(10)
+        if progress.result_code != 0:
+            raise Exception(progress.error_info.text)
+        else:
+            return 1
 
     def start_appliance(self, vbox_obj) -> virtualbox.library.IMachine:
         print("Starting appliance...")
@@ -108,7 +113,8 @@ class HSMDeploy:
 
     def run(self) -> bool:
         vbox = virtualbox.VirtualBox()
-        try:
+        all_machines = list(map(str, vbox.machines))
+        if self._machine_name in all_machines:
             hsm = vbox.find_machine(self._machine_name)
             session = hsm.create_session()
             while hsm.state != 1:
@@ -116,11 +122,11 @@ class HSMDeploy:
                 print("Try power down machine...")
                 sleep(5)
             print("Machine is power down!")
-            print(f"Removing {self._machine_name} machine...")
-            hsm.remove()
+            print(f"Removing {self._machine_name} machine...")            
             session.unlock_machine()
-        except:
-            hsm = self.start_appliance(vbox)
+            hsm.remove()
+        hsm = self.start_appliance(vbox)
+        input("Prep start m")
         self.configure_machine(hsm)
         sleep(5)
         session_scr = virtualbox.Session()
