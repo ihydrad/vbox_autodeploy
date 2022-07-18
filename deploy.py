@@ -22,10 +22,10 @@ def timeit(func):
 class HSMDeploy:
     build_pattern = r'\d+\.\d+\.\d\.\d+'
 
-    def __init__(self, ovf_path, ip) -> None:
+    def __init__(self, ovf_path, prefix='') -> None:
         self.vbox = virtualbox.VirtualBox()
         self._ovf_path = ovf_path
-        self.ip_addr = ip
+        self.prefix = prefix
         self.hsm_build = ''
         self._machine_name = self.machine_name
 
@@ -37,7 +37,7 @@ class HSMDeploy:
             self.hsm_build = self.hsm_build.group(0)
         except IndexError:
             self.hsm_build = 'hsm'
-        return self.hsm_build + '_' + self.ip_addr.split('.')[-1]
+        return self.prefix + self.hsm_build
 
     @machine_name.setter
     def machine_name(self, name):

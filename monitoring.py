@@ -7,11 +7,6 @@ import argparse
 
 
 deploy_folder = const.deploy_folder
-net_conf = {
-        "addr": "192.168.56.11",
-        "mask": "255.255.255.0",
-        "gw": "192.168.56.1"
-        }
 
 
 class Monitoring:
@@ -39,17 +34,20 @@ class Monitoring:
             os.remove(ova)
 
     def run(self):
+        print("Monitoring started!")
         while True:
-            sleep(5)
+            sleep(1)
             self.targets = self.get_subfolders()
             if self.targets:
+                sleep(7)
                 for ip, ova_path in self.targets.items():
                     print(f'Starting deploy "{os.path.basename(ova_path)}":[{ip}]')
-                    deploy = HSMDeploy(ova_path, ip)
+                    prefix_name = self.ip.split('.')[-1]
+                    deploy = HSMDeploy(ova_path, prefix_name)
                     deploy.run()
                     sleep(5)
                     node = Node()
-                    node.config.eth0_set(net_conf)
+                    node.config.set_eth0(ip, gw, mask)
                     node.reboot()
                 self.clear_targets()
 
