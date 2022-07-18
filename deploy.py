@@ -3,20 +3,12 @@ import virtualbox
 import const
 import os
 import re
-from HSMhelper import Node
 from virtualbox.library import NetworkAttachmentType
 from tqdm import tqdm
-import argparse
 import datetime
 
 
 target = const.ovf_file
-net_conf = {
-        "addr": "192.168.56.11",
-        "mask": "255.255.255.0",
-        "gw": "192.168.56.1"
-        }
-
 
 def timeit(func):
     def wrapper(*args, **kvargs):
@@ -27,26 +19,8 @@ def timeit(func):
     return wrapper
 
 
-def set_net_conf(conf):
-    cnt = 30
-    print("Try connect to machine...", end='')
-    sleep(5)
-    while cnt:
-        cnt -= 1
-        try:
-            print(".", end='')
-            hsm_ssh = Node(const.start_hsm_ip)
-        except:
-            continue
-        if hsm_ssh.config.eth0_set(conf):
-            print("Complete! Rebooting...")
-            hsm_ssh.config.reboot()
-            return 1
-    return 0
-
-
 class HSMDeploy:
-    build_pattern = r"\d+\.\d+\.d+\."
+    build_pattern = r'\d+\.\d+\.\d\.\d+'
 
     def __init__(self, ovf_path, ip) -> None:
         self.vbox = virtualbox.VirtualBox()
@@ -148,15 +122,15 @@ class HSMDeploy:
     def run(self) -> bool:
         self.remove_machine(self._machine_name)
         hsm = self.start_appliance()
-        start = input("Start guest?(N/y)")
-        if start.lower() == 'n' or start == '':
-            return 0
+        # start = input("Start guest?(N/y)")
+        # if start.lower() == 'n' or start == '':
+        #     return 0
         self.configure_machine(hsm)
         sleep(5)
         session = virtualbox.Session()
         progress = hsm.launch_vm_process(session, "gui", [])
         print("\n========starting machine:")
-        self.wait(progress)        
+        self.wait(progress)
         self.wait_for_load_os(session)
 
     # TODO add method for get names of all network adapters

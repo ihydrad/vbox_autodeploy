@@ -1,9 +1,17 @@
 import os
 import const
 from deploy import HSMDeploy
+from HSMhelper import Node
+from time import sleep
+import argparse
 
 
 deploy_folder = const.deploy_folder
+net_conf = {
+        "addr": "192.168.56.11",
+        "mask": "255.255.255.0",
+        "gw": "192.168.56.1"
+        }
 
 
 class Monitoring:
@@ -26,12 +34,24 @@ class Monitoring:
                     continue
         return data
 
+    def defclear_targets(self):
+        for ova in self.taggets.values():
+            os.remove(ova)
+
     def run(self):
-        self.targets = self.get_subfolders()
-        for ip, ova_path in self.targets.items():
-            print(f'Starting deploy "{os.path.basename(ova_path)}":[{ip}]')
-            deploy = HSMDeploy(ova_path, ip)
-            deploy.run()
+        while True:
+            sleep(5)
+            self.targets = self.get_subfolders()
+            if self.targets:
+                for ip, ova_path in self.targets.items():
+                    print(f'Starting deploy "{os.path.basename(ova_path)}":[{ip}]')
+                    deploy = HSMDeploy(ova_path, ip)
+                    deploy.run()
+                    sleep(5)
+                    node = Node()
+                    node.config.eth0_set(net_conf)
+                    node.reboot()
+                self.clear_targets()
 
 
 if __name__ == "__main__":
