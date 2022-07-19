@@ -48,14 +48,15 @@ class Monitoring:
                         prefix_name = ip[-2:]
                     deploy = HSMDeploy(ova_path, prefix_name)
                     deploy.run()
-                    sleep(5)
+                    sleep(10)
                     node = Node()
                     node.eth0.name = "eth0"
                     node.eth0.address = f"{ip}/24"
                     node.eth0.gateway = "192.168.56.1"
-                    node.config.set_net_iface(node.eth0)
-                    input("Net conf ok")
                     node.init()
+                    node.config.set_net_iface(node.eth0)
+                    node.reboot()
+                    # TODO сменить мак
                     self.remove_ova(ova_path)
                 self.targets = ''
 
