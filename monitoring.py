@@ -30,8 +30,8 @@ class Monitoring:
         return data
 
     def remove_ova(self, target):
-            print(f"Removing {target}")
-            os.remove(target)
+        print(f"Removing {target}")
+        os.remove(target)
 
     def run(self):
         print("Monitoring started!")
