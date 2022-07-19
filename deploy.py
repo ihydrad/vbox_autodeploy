@@ -1,6 +1,6 @@
 from time import sleep
 import virtualbox
-import const
+import folders
 import os
 import re
 from virtualbox.library import NetworkAttachmentType
@@ -8,7 +8,7 @@ from tqdm import tqdm
 import datetime
 
 
-target = const.ovf_file
+target = folders.ovf_file
 
 def timeit(func):
     def wrapper(*args, **kvargs):
@@ -37,7 +37,7 @@ class HSMDeploy:
             self.hsm_build = self.hsm_build.group(0)
         except IndexError:
             self.hsm_build = 'hsm'
-        return self.prefix + self.hsm_build
+        return self.hsm_build + "_" + self.prefix
 
     @machine_name.setter
     def machine_name(self, name):
@@ -138,6 +138,6 @@ class HSMDeploy:
 
 
 if __name__ == "__main__":
-    hsm_deploy = HSMDeploy(target, net_conf["addr"])
+    hsm_deploy = HSMDeploy(target)
     hsm_deploy.run()
     #  set_net_conf(net_conf)
