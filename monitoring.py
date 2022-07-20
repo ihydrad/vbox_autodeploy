@@ -28,7 +28,7 @@ class Monitoring:
                 else:
                     continue
         return data
-
+    
     def remove_ova(self, target):
         print(f"Removing {target}")
         os.remove(target)
@@ -46,8 +46,8 @@ class Monitoring:
                         prefix_name = ip.split('.')[-1]
                     except:
                         prefix_name = ip[-2:]
-                    deploy = HSMDeploy(ova_path, prefix_name)
-                    deploy.run()
+                    machine = HSMDeploy(ova_path, prefix_name)
+                    machine.run()
                     sleep(10)
                     node = Node()
                     node.eth0.name = "eth0"
@@ -56,7 +56,7 @@ class Monitoring:
                     node.init()
                     node.config.set_net_iface(node.eth0)
                     node.reboot()
-                    # TODO сменить мак
+                    machine.restore_mac()
                     self.remove_ova(ova_path)
                 self.targets = ''
 

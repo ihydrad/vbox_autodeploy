@@ -6,6 +6,7 @@ import re
 from virtualbox.library import NetworkAttachmentType
 from tqdm import tqdm
 import datetime
+import psutil
 
 
 target = folders.ovf_file
@@ -19,6 +20,16 @@ def timeit(func):
     return wrapper
 
 
+def prep_conf(func):
+    def wrapper(self, machine):
+        session = machine.create_session()
+        temp_machine = session.machine
+        func(self, temp_machine)
+        temp_machine.save_settings()
+        session.unlock_machine()
+    return wrapper
+
+
 class HSMDeploy:
     build_pattern = r'\d+\.\d+\.\d\.\d+'
 
@@ -28,6 +39,7 @@ class HSMDeploy:
         self.prefix = prefix
         self.hsm_build = ''
         self._machine_name = self.machine_name
+        self.host_iface = [iface for iface in psutil.net_if_addrs() if "VirtualBox" in iface]
 
     @property
     def machine_name(self) -> str:
@@ -75,15 +87,18 @@ class HSMDeploy:
         print("\nMachine name:", hsm)
         return hsm
 
+    @prep_conf
     def configure_machine(self, machine):
-        session_conf = machine.create_session()
-        hsm_tmp = session_conf.machine
-        eth0 = hsm_tmp.get_network_adapter(0)
+        eth0 = machine.get_network_adapter(0)
         eth0.host_only_interface = "VirtualBox Host-Only Ethernet Adapter"
         eth0.attachment_type = NetworkAttachmentType["host_only"]
+        self.mac_backup = eth0.mac_address
         eth0.mac_address = "0800272bf921"
-        hsm_tmp.save_settings()
-        session_conf.unlock_machine()
+
+    @prep_conf
+    def restore_mac(self, macnine):
+        eth0 = macnine.get_network_adapter(0)
+        eth0.mac_address = self.mac_backup
 
     @timeit
     def wait_for_load_os(self, session_obj):
